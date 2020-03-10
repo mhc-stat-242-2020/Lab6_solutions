@@ -1,0 +1,159 @@
+---
+title: "Lab 6 - linear models"
+subtitle: "Solutions"
+output: pdf_document
+---
+
+## Goals
+
+The goal in this lab is to practice interpreting the coefficient estimates in simple linear regression models (linear models with one quantitative explanatory variable), conducting hypothesis tests, and finding confidence intervals for the coefficients.
+
+## Loading packages
+
+Here are some packages with functionality you may need for this lab.  Run this code chunk now.
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(ggplot2)
+library(gridExtra)
+library(mosaic)
+library(dplyr)
+options("pillar.sigfig" = 10) # print 10 significant digits in summarize output
+```
+
+## Leaf Margins
+
+For a variety of reasons, scientists are interested in the relationship between the climate of a region and characteristics of the plants and animals that live there.  For example, this could inform thinking about the impacts of climate change on natural resources, and could be used by paleontologists to learn about historical climatological conditions from the fossil record.
+
+In 1979, the US Geological service published a report discussing a variety of characteristics of forests throughout the world and discussed connections to the climates in those different regions (J. A. Wolfe, 1979, Temperature parameters of humid to mesic forests of eastern Asia and relation to forests of other regions of the Northern Hemisphere and Australasia, USGS Professional Paper, 1106).  One part of this report discussed the connection between the temperature of a region and the shapes of tree leaves in the forests in that region.  Generally, leaves can be described as either "serrated" (having a rough edge like a saw blade) or "entire" (having a smooth edge) - see the picture here: https://en.wikibooks.org/wiki/Historical_Geology/Leaf_shape_and_temperature.  One plot in the report displaysthe relationship between the mean annual temperature in a forested region (in degrees Celsius) and the percent of leaves in the forest canopy that are "entire".
+
+The following R code reads in the data:
+
+```{r}
+library(tidyverse)
+leaf <- read_csv("http://www.evanlray.com/data/misc/leaf_margins/leaf_margins.csv")
+head(leaf)
+```
+
+#### 1. Which variable in the data set is the explanatory variable and which is the response?
+
+The explanatory variable is mean annual temperature (in degrees Celsius) and the response variable is percent of leaves in the forest canopy that are "entire" (percent entire margined).
+
+
+#### 2. Make a scatter plot of the data with the explanatory variable on the horizontal axis and the response on the vertical axis.
+
+```{r fig.align='center'}
+ggplot(data=leaf, aes(x=mean_annual_temp_C, y=pct_entire_margined)) +
+  geom_point() +
+  theme_bw()
+
+```
+
+#### 3. Fit a linear model to this data set and print out a summary of the model fit.
+
+```{r}
+lm_leaf <- lm(pct_entire_margined ~ mean_annual_temp_C, data=leaf)
+summary(lm_leaf)
+```
+
+#### 4. Interpret the estimated intercept and slope in context.
+
+Intercept: For a mean annual temperature of 0 degrees Celsius, we expect -2.165 percent of the leaves in the canopy to be "entire".
+
+Slope: For a 1 degree increase in mean annual temperature (in degrees Celsius), we expect an increase of 3.18 percent in percent of the leaves in the canopy that are "entire".
+
+#### 5. Conduct a hypothesis test of the claim that the average temperature in a given location has no effect on the percent of leaves in forests there that are entire margined.  State your hypotheses in symbols and written sentences and interpret the p-value in terms of strength of evidence against the null hypothesis.  Do you know how you could find the p-value for this test given the estimate and a standard error of the estimate?
+
+Hypotheses:
+
+$H_0: \beta_1=0$. The average temperature has no effect on the percent of leaves in forests there that are entire margined.
+
+$H_A: \beta_1\neq 0$. The average temperature has an effect on the percent of leaves in forests there that are entire margined.
+
+Interpetation: 
+
+There is very strong evidence (p-value < 2e-16) that there is a positive relationship (t=3.18) between the average temperature and the percent of the leaves in the canopy that are entire. If the average temperature has no effect on the percent of leaves in the forests there that are entire margined (under the null), then in similar studies (similar study population and sampling method) we would expect to get a result like the one we got here purely by chance in about 0% of these samples (since the p-value is so small in this case).
+
+Find p-value given the estimate and a standard error of the estimate:
+
+```{r}
+## Find test statistic
+t_stat <- (3.18058-0)/0.06808
+
+## Find P(|T| > t_stat) - this is the p-value
+2*pt(t_stat, df=32, lower.tail = FALSE)
+```
+
+
+
+#### 6. Find a 95% confidence interval for the amount by which the average percent of leaves that are entire margined increases for each 1-degree increase in the average temperature.  Do you know how you could find the p-value for this test given the estimate and a standard error of the estimate?
+
+```{r}
+confint(lm_leaf)
+```
+
+This does not specifically ask for an interpretation, but let's write one anyway! We are 95% confident that the mean amount by which the average percent of leaves that are entire margined increases for each 1-degree increase in the average temperature is between 3.042 and 3.319 percent. For 95% of samples from a similar population (collected in a similar way), corresponding intervals constructed in this way would contain the true mean amount by which the average percent of leaves that are entire margined increases for each 1-degree increase in the average temperature.
+
+Find p-value given the estimate and a standard error of the estimate:
+
+You would do this in the same way as you did for 5. $H_0: \beta_1=0$ versus $H_A: \beta_1\neq 0$
+
+#### 7. Conduct a hypothesis test of the claim that on average, in forests where the average temperature is 0 degrees C, 0 percent of leaves are entire margined.
+
+$H_0: \beta_0=0$. In forests where the average temperature is 0 degrees C, 0 percent of leaves are entire margined.
+
+$H_A: \beta_0\neq 0$. In forests where the average temperature is 0 degrees C, the percent of leaves that are entire margined is something other than 0.
+
+Interpretation: (You can continue using the summary output from 3.)
+
+There is inconclusive evidence (p-value = 0.09) that in forests where the average temperature is 0 degrees, the percent of leaves that are entire margined is something other than 0. If in forests where the average temperature is 0 degrees, the percent of leaves that are entire margined is 0, then in similar studies (similar study population and sampling method) we would expect to get a result like the one we got here purely by chance in about 9% of these samples.
+
+
+
+#### 8. Find an estimate and a 95% confidence interval for the mean percent of leaves that are entire margined in forests where the mean annual temperature is 20 degrees C.
+
+```{r}
+predict_df <- data.frame(
+  mean_annual_temp_C <- 20
+)
+
+predict(lm_leaf, predict_df, interval="confidence", se.fit = TRUE)
+```
+
+Once again, this doesn't ask for us to interpret the 95% confidence interval, but let's do it anyway. 
+
+We are 95% confident that the mean percent of leaves that are entire margined in forests where the mean annual temperature is 20 degrees C is between 60.541 and 62.352 percent. For 95% of samples we would expect the corresponding intervals for forests where the mean annual of temperature is 20 degrees C to contain the true mean percent of leaves that are entire margined.
+
+#### 9. Find a set of 3 Bonferroni-adjusted confidence intervals for the mean percent of leaves that are entire margined in forests where the mean annual temperature is 15 degrees C, 20 degrees C, and 25 degrees C.  Use a family-wise confidence level of 95%.
+
+```{r}
+predict_df <- data.frame(
+  mean_annual_temp_C <- c(15,20,25)
+)
+
+predict(lm_leaf, predict_df, interval="confidence", se.fit = TRUE, level=1-0.05/3)
+```
+
+We are 95% confident that the mean percent of leaves that are entire margined in forests where the mean annual temperature is 15 degrees C is between 44.446 and 46.641 percent, for forests where the mean annual temperature is 20 degrees C is between 60.323 and 62.569 percent, and for forests where the mean annual temperature is 25 degrees C is between 75.677 and 79.022 percent. For 95% of samples like the one in this study, the corresponding intervals at each of these three mean temperatures constructed in this way will simultaneously contain their respective means.
+
+#### 10. Create a scatterplot of the data with the estimated line overlaid on top, and lines showing the bounds of Scheffe-based confidence intervals for the means at each value of $X$ in the range of the data.
+
+```{r fig.align='center'}
+intervals <- predict(lm_leaf, interval="prediction") %>%
+  as.data.frame()
+
+head(intervals)
+
+leaf <- leaf %>%
+  bind_cols(
+    intervals
+  )
+head(intervals)
+
+ggplot(data=leaf, aes(x=mean_annual_temp_C, y=pct_entire_margined)) +
+  geom_point() +
+  geom_smooth(method="lm", se = FALSE) +
+  geom_line(aes(y=lwr), linetype=2) +
+  geom_line(aes(y=upr), linetype=2) +
+  theme_bw()
+```
